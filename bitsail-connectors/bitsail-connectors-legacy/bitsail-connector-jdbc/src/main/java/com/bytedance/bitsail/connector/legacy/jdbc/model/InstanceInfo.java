@@ -21,6 +21,7 @@ import com.bytedance.bitsail.common.util.Pair;
 /**
  * @desc:
  */
+@Deprecated
 public class InstanceInfo {
   private String host;
   private int port;
