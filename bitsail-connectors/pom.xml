@@ -42,6 +42,7 @@
         <module>connector-redis</module>
         <module>connector-clickhouse</module>
         <module>connector-druid</module>
+        <module>connector-mysql</module>
     </modules>
 
     <dependencies>
