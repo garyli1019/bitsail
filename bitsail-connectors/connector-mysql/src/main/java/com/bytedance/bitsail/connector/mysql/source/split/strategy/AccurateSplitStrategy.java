@@ -29,7 +29,7 @@ public class AccurateSplitStrategy implements SplitStrategy {
   }
 
   @Override
-  public void assign() {
+  public void createSplit() {
 
   }
 }

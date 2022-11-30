@@ -29,7 +29,7 @@ public class AllSplitStrategy implements SplitStrategy {
   }
 
   @Override
-  public void assign() {
+  public void createSplit() {
 
   }
 }

@@ -22,7 +22,7 @@ package com.bytedance.bitsail.connector.mysql.source.split.strategy;
 public interface SplitStrategy {
   void open();
 
-  void assign();
+  void createSplit();
 
   enum Mode {
     accurate,
