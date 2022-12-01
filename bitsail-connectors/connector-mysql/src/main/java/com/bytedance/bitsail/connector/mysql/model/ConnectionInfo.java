@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Created 2020/11/19.
+ * Representing a connection to a DB instant.
  */
 @Builder
 @AllArgsConstructor

@@ -19,6 +19,8 @@
 
 package com.bytedance.bitsail.connector.mysql.source.split.strategy;
 
+import com.bytedance.bitsail.common.BitSailException;
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
 import com.bytedance.bitsail.common.util.Pair;
 import com.bytedance.bitsail.connector.mysql.model.DbClusterInfo;
 import com.bytedance.bitsail.connector.mysql.model.DbCommonInfo;
@@ -30,6 +32,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -53,14 +56,20 @@ public abstract class AbstractSplitStrategy implements SplitStrategy {
 
   private final JDBCSQLTypes.SqlTypes sqlTypes;
 
+  private final String filter;
+
+  private final long fetchSize;
+
 
 
   public AbstractSplitStrategy(DbCommonInfo dbCommonInfo, DbClusterInfo dbClusterInfo,
-                               List<DbShardInfo> dbShardInfos, JDBCSQLTypes.SqlTypes sqlTypes) {
+                               List<DbShardInfo> dbShardInfos, JDBCSQLTypes.SqlTypes sqlTypes, String filter, long fetchSize) {
     this.dbCommonInfo = dbCommonInfo;
     this.dbClusterInfo = dbClusterInfo;
     this.dbShardInfos = dbShardInfos;
     this.sqlTypes = sqlTypes;
+    this.filter = filter;
+    this.fetchSize = fetchSize;
   }
 
   @Override
@@ -69,13 +78,49 @@ public abstract class AbstractSplitStrategy implements SplitStrategy {
 
   }
 
+  private void initConns(List<DbShardInfo> slaves, BitSailConfiguration inputSliceConfig, String initSql) {
+    final String sql = getFetchSQLFormat(dbClusterInfo.getSplitPK(), filter, fetchSize);
+
+    for (DbShardInfo shardInfo : slaves) {
+      DbShardWithConn dbShardWithConn = new DbShardWithConn(shardInfo, dbClusterInfo, sql, inputSliceConfig,
+          driverClassName, initSql);
+      slavesWithConn.add(dbShardWithConn);
+    }
+    Collections.shuffle(slavesWithConn);
+
+    connInitSucc = true;
+  }
+
+  public static String getFetchSQLFormat(String splitKey, String filter, long fetchSize) {
+    StringBuilder sql = new StringBuilder();
+    sql.append("SELECT max(")
+        .append(splitKey)
+        .append(") FROM (")
+        .append("SELECT ")
+        .append(splitKey)
+        .append(" FROM ")
+        .append(" %s ")
+        .append(" WHERE ");
+    if (null != filter) {
+      sql.append("(").append(filter).append(")").append(" AND ");
+    }
+    sql.append(splitKey)
+        .append("> ? ") // preMaxPriKey
+        .append(" ORDER BY ")
+        .append(splitKey)
+        .append(" LIMIT ")
+        .append(fetchSize)
+        .append(") t");
+    return sql.toString();
+  }
+
   @Override
   public void createSplit() {
     // create split for this strategy
   }
 
   public Pair<Integer, List<MysqlSnapshotSplit>> createSplitAllShade() {
-    final int shardNum = slavesWithConn.get(0).getShardInfo().getShardNum();
+
   }
 
   public List<MysqlSnapshotSplit> createSplitSingleDb() {

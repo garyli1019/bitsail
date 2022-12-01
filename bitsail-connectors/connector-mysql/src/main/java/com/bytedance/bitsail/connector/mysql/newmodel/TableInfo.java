@@ -17,31 +17,11 @@
  * under the License.
  */
 
-package com.bytedance.bitsail.connector.mysql.source.split;
+package com.bytedance.bitsail.connector.mysql.newmodel;
 
-import com.bytedance.bitsail.connector.mysql.newmodel.ConnectionInfo;
-import com.bytedance.bitsail.connector.mysql.newmodel.TableInfo;
-import com.bytedance.bitsail.connector.mysql.source.split.chunk.ChunkInfo;
-
-/**
- * A snapshot split include a database conecction information
- */
-public class MysqlSnapshotSplit extends MysqlSplit{
-
-  private final ChunkInfo chunkInfo;
-
-  private final ConnectionInfo connectionInfo;
-
-  private final TableInfo tableInfo;
-
-  public MysqlSnapshotSplit(ChunkInfo chunkInfo, ConnectionInfo connectionInfo, TableInfo tableInfo) {
-    this.chunkInfo = chunkInfo;
-    this.connectionInfo = connectionInfo;
-    this.tableInfo = tableInfo;
-  }
-
-  @Override
-  public String uniqSplitId() {
-    return null;
-  }
+public class TableInfo {
+  private String tableName;
+  private String tableSchema;
+  private String catalogName;
+  private String id;
 }

@@ -29,7 +29,7 @@ import org.apache.commons.collections.CollectionUtils;
 import java.util.List;
 
 /**
- * Created 2020/11/19.
+ * Representing a cluster, including a master connection and worker connections.
  */
 @Builder
 @AllArgsConstructor

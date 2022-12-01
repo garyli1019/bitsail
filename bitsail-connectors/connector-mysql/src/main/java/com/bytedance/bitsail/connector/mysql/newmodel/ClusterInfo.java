@@ -17,31 +17,18 @@
  * under the License.
  */
 
-package com.bytedance.bitsail.connector.mysql.source.split;
+package com.bytedance.bitsail.connector.mysql.newmodel;
 
-import com.bytedance.bitsail.connector.mysql.newmodel.ConnectionInfo;
-import com.bytedance.bitsail.connector.mysql.newmodel.TableInfo;
-import com.bytedance.bitsail.connector.mysql.source.split.chunk.ChunkInfo;
+import lombok.Builder;
+
+import java.util.List;
 
 /**
- * A snapshot split include a database conecction information
+ * Representing a single cluster. Including a master node and multiple worker nodes.
  */
-public class MysqlSnapshotSplit extends MysqlSplit{
-
-  private final ChunkInfo chunkInfo;
-
-  private final ConnectionInfo connectionInfo;
-
-  private final TableInfo tableInfo;
-
-  public MysqlSnapshotSplit(ChunkInfo chunkInfo, ConnectionInfo connectionInfo, TableInfo tableInfo) {
-    this.chunkInfo = chunkInfo;
-    this.connectionInfo = connectionInfo;
-    this.tableInfo = tableInfo;
-  }
-
-  @Override
-  public String uniqSplitId() {
-    return null;
-  }
+@Builder
+public class ClusterInfo {
+  private ConnectionInfo master;
+  private List<ConnectionInfo> worker;
+  private int clusterId;
 }

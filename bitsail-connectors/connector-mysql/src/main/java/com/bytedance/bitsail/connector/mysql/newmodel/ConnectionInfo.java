@@ -17,31 +17,28 @@
  * under the License.
  */
 
-package com.bytedance.bitsail.connector.mysql.source.split;
+package com.bytedance.bitsail.connector.mysql.newmodel;
 
-import com.bytedance.bitsail.connector.mysql.newmodel.ConnectionInfo;
-import com.bytedance.bitsail.connector.mysql.newmodel.TableInfo;
-import com.bytedance.bitsail.connector.mysql.source.split.chunk.ChunkInfo;
+import com.alibaba.fastjson.annotation.JSONField;
+import lombok.Builder;
+import org.apache.commons.lang3.StringUtils;
 
 /**
- * A snapshot split include a database conecction information
+ * Representing a connection to a database instant.
  */
-public class MysqlSnapshotSplit extends MysqlSplit{
+@Builder
+public class ConnectionInfo {
+  private String host;
 
-  private final ChunkInfo chunkInfo;
+  @JSONField(name = "db_url")
+  private String url;
 
-  private final ConnectionInfo connectionInfo;
+  private int port;
 
-  private final TableInfo tableInfo;
-
-  public MysqlSnapshotSplit(ChunkInfo chunkInfo, ConnectionInfo connectionInfo, TableInfo tableInfo) {
-    this.chunkInfo = chunkInfo;
-    this.connectionInfo = connectionInfo;
-    this.tableInfo = tableInfo;
-  }
-
-  @Override
-  public String uniqSplitId() {
-    return null;
+  public void setConnectionParameters(String connectionParameters) {
+    if (StringUtils.isNotEmpty(connectionParameters) && StringUtils.isNotEmpty(url)) {
+      String urlPrefix = url.split("\\?")[0];
+      url = urlPrefix + "?" + connectionParameters;
+    }
   }
 }
