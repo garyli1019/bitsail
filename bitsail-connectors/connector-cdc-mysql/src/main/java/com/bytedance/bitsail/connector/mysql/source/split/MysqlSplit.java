@@ -19,11 +19,13 @@ package com.bytedance.bitsail.connector.mysql.source.split;
 import com.bytedance.bitsail.base.connector.reader.v1.SourceSplit;
 import com.bytedance.bitsail.connector.mysql.source.offset.BinlogOffset;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
 @Builder
 @Getter
+@AllArgsConstructor
 public class MysqlSplit implements SourceSplit {
 
   private final String splitId;

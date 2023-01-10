@@ -16,12 +16,28 @@
 
 package com.bytedance.bitsail.connector.mysql.source.debezium;
 
+import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.connector.mysql.source.config.MysqlConfig;
+import com.bytedance.bitsail.connector.mysql.source.offset.BinlogOffset;
+import com.bytedance.bitsail.connector.mysql.source.split.MysqlSplit;
+
+import io.debezium.connector.mysql.MySqlConnectorConfig;
+import io.debezium.connector.mysql.MySqlOffsetContext;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class DebeziumHelperTest {
 
   @Test
-  public void testOffsetContext() {
-
+  public void testLoadOffsetContext() {
+    BitSailConfiguration conf = BitSailConfiguration.newDefault();
+    MysqlConfig mysqlConfig = MysqlConfig.fromBitSailConf(conf);
+    MySqlConnectorConfig connectorConfig = mysqlConfig.getDbzMySqlConnectorConfig();
+    MysqlSplit split = new MysqlSplit("split-0",
+        BinlogOffset.earliest(),
+        BinlogOffset.boundless());
+    MySqlOffsetContext offsetContext = DebeziumHelper.loadOffsetContext(connectorConfig, split);
+    Assert.assertEquals("", offsetContext.getSource().binlogFilename());
+    Assert.assertEquals(0L, offsetContext.getSource().binlogPosition());
   }
 }

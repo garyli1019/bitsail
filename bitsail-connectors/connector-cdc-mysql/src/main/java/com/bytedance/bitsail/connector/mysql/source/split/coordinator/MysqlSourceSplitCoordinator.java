@@ -107,13 +107,9 @@ public class MysqlSourceSplitCoordinator implements SourceSplitCoordinator<Mysql
   }
 
   private MysqlSplit createSplit() {
-    BinlogOffset begin = BinlogOffset.builder()
-        .offsetType(BinlogOffset.OffsetType.EARLIEST)
-        .build();
+    BinlogOffset begin = BinlogOffset.earliest();
 
-    BinlogOffset end = BinlogOffset.builder()
-        .offsetType(BinlogOffset.OffsetType.BOUNDLESS)
-        .build();
+    BinlogOffset end = BinlogOffset.boundless();
 
     return MysqlSplit.builder()
         .splitId("binlog")

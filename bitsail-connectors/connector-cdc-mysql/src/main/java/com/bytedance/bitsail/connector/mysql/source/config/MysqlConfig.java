@@ -17,13 +17,20 @@
 package com.bytedance.bitsail.connector.mysql.source.config;
 
 import com.bytedance.bitsail.common.configuration.BitSailConfiguration;
+import com.bytedance.bitsail.connector.mysql.error.MysqlCdcErrorCode;
+import com.bytedance.bitsail.connector.mysql.model.ClusterInfo;
+import com.bytedance.bitsail.connector.mysql.model.ConnectionInfo;
+import com.bytedance.bitsail.connector.mysql.option.MysqlReaderOptions;
 
 import io.debezium.config.Configuration;
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import lombok.Builder;
 import lombok.Getter;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.Serializable;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Properties;
 
 @Getter
@@ -31,6 +38,8 @@ import java.util.Properties;
 public class MysqlConfig implements Serializable {
 
   private static final long serialVersionUID = 1L;
+
+  public static final String DEBEZIUM_PREFIX = "job.reader.debezium.";
 
   private final String hostname;
   private final int port;
@@ -42,14 +51,23 @@ public class MysqlConfig implements Serializable {
   private final Configuration dbzConfiguration;
   private final MySqlConnectorConfig dbzMySqlConnectorConfig;
 
-  public static MysqlConfig fromJobConf(BitSailConfiguration jobConf) {
+  public static MysqlConfig fromBitSailConf(BitSailConfiguration jobConf) {
+    List<ClusterInfo> clusterInfo = jobConf.getNecessaryOption(MysqlReaderOptions.CONNECTIONS, MysqlCdcErrorCode.REQUIRED_VALUE);
+    //Only support one DB
+    assert(clusterInfo.size() == 1);
+    ConnectionInfo connectionInfo = clusterInfo.get(0).getMaster();
+    assert(connectionInfo != null);
     Properties props = extractProps(jobConf);
+    String username = jobConf.getNecessaryOption(MysqlReaderOptions.USER_NAME, MysqlCdcErrorCode.REQUIRED_VALUE);
+    String password = jobConf.getNecessaryOption(MysqlReaderOptions.PASSWORD, MysqlCdcErrorCode.REQUIRED_VALUE);
+    fillConnectionInfo(props, connectionInfo, username, password);
+
     Configuration config = Configuration.from(props);
     return MysqlConfig.builder()
-        .hostname("123")
-        .port(1)
-        .username("123")
-        .password("123")
+        .hostname(connectionInfo.getHost())
+        .port(connectionInfo.getPort())
+        .username(username)
+        .password(password)
         .dbzProperties(props)
         .dbzConfiguration(config)
         .dbzMySqlConnectorConfig(new MySqlConnectorConfig(config))
@@ -58,8 +76,19 @@ public class MysqlConfig implements Serializable {
 
   public static Properties extractProps(BitSailConfiguration jobConf) {
     Properties props = new Properties();
-    props.setProperty("p1", "v1");
+    jobConf.getKeys().stream()
+        .filter(s -> s.startsWith(DEBEZIUM_PREFIX))
+            .map(s -> StringUtils.substringAfter(s, DEBEZIUM_PREFIX))
+                .forEach(s -> props.setProperty(s, jobConf.getString(DEBEZIUM_PREFIX + s)));
     return props;
+  }
+
+  public static void fillConnectionInfo(Properties props, ConnectionInfo connectionInfo, String username, String password) {
+    props.put("database.hostname", connectionInfo.getHost());
+    props.put("database.port", String.valueOf(connectionInfo.getPort()));
+    props.put("database.user", username);
+    props.put("database.password", password);
+    props.put("database.serverTimezone", ZoneId.of("UTC").toString());
   }
 
 }

@@ -42,6 +42,7 @@ import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.relational.TableId;
+import io.debezium.schema.DefaultTopicNamingStrategy;
 import io.debezium.spi.topic.TopicNamingStrategy;
 import io.debezium.util.Clock;
 import io.debezium.util.SchemaNameAdjuster;
@@ -49,12 +50,17 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import static io.debezium.relational.RelationalDatabaseConnectorConfig.DATABASE_NAME;
 
@@ -65,7 +71,7 @@ public class MysqlBinlogSplitReader {
 
   private static final Logger LOG = LoggerFactory.getLogger(MysqlBinlogSplitReader.class);
 
-  boolean isRunning;
+  private boolean isRunning;
 
   private final MysqlConfig mysqlConfig;
 
@@ -97,7 +103,7 @@ public class MysqlBinlogSplitReader {
   private final int subtaskId;
 
   public MysqlBinlogSplitReader(BitSailConfiguration jobConf, int subtaskId) {
-    this.mysqlConfig = MysqlConfig.fromJobConf(jobConf);
+    this.mysqlConfig = MysqlConfig.fromBitSailConf(jobConf);
     // handle configuration
     this.connectorConfig = mysqlConfig.getDbzMySqlConnectorConfig();
     this.subtaskId = subtaskId;
@@ -108,7 +114,9 @@ public class MysqlBinlogSplitReader {
   public void readSplit(MysqlSplit split) {
     this.split = split;
     MySqlOffsetContext offsetContext = DebeziumHelper.loadOffsetContext(connectorConfig, split);
-    final TopicNamingStrategy topicNamingStrategy = connectorConfig.getTopicNamingStrategy(MySqlConnectorConfig.TOPIC_NAMING_STRATEGY);
+
+    //final TopicNamingStrategy topicNamingStrategy = connectorConfig.getTopicNamingStrategy(MySqlConnectorConfig.TOPIC_NAMING_STRATEGY);
+    final TopicNamingStrategy topicNamingStrategy = DefaultTopicNamingStrategy.create(connectorConfig);
     final SchemaNameAdjuster schemaNameAdjuster = connectorConfig.schemaNameAdjustmentMode().createAdjuster();
     final MySqlValueConverters valueConverters = DebeziumHelper.getValueConverters(connectorConfig);
 
@@ -127,10 +135,23 @@ public class MysqlBinlogSplitReader {
     final MySqlEventMetadataProvider metadataProvider = new MySqlEventMetadataProvider();
 
     final Configuration dbzConfiguration = mysqlConfig.getDbzConfiguration();
+
     this.connection = new MySqlConnection(
         new MySqlConnection.MySqlConnectionConfiguration(dbzConfiguration), connectorConfig.useCursorFetch() ?
         new MySqlBinaryProtocolFieldReader(connectorConfig)
         : new MySqlTextProtocolFieldReader(connectorConfig));
+
+//    Connection connection = DriverManager.getConnection(
+//        connectorConfig.getJdbcConfig().getHostname(), username, password);
+//    Statement statement = connection.createStatement();
+//    LOG.info("executing sql: {}", sql);
+
+    try {
+      connection.connect();
+      connection.execute("SELECT version()");
+    } catch (SQLException e) {
+      throw new RuntimeException("Failed to connect", e);
+    }
 
     DebeziumHelper.validateBinlogConfiguration(connectorConfig, connection);
 
@@ -183,6 +204,12 @@ public class MysqlBinlogSplitReader {
         new MySqlStreamingChangeEventSourceMetrics(
             taskContext, queue, metadataProvider)
     );
+    this.isRunning = true;
+    try {
+      dbzSource.init();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
     executorService.submit(
         () -> {
           try {
@@ -228,7 +255,9 @@ public class MysqlBinlogSplitReader {
   }
 
   public SourceRecord poll() {
-    return this.recordIterator.next();
+    SourceRecord record = this.recordIterator.next();
+    LOG.info("poll one record {}", record);
+    return record;
   }
 
   public boolean hasNext() throws InterruptedException {
@@ -242,6 +271,12 @@ public class MysqlBinlogSplitReader {
   private boolean pollNextBatch() throws InterruptedException {
     if (isRunning) {
       List<DataChangeEvent> dbzRecords = queue.poll();
+      while (dbzRecords.isEmpty()) {
+        //sleep 10s
+        LOG.info("No record found, sleep for 10s");
+        TimeUnit.SECONDS.sleep(10);
+        dbzRecords = queue.poll();
+      }
       // TODO: handle DBlog algorithm to de-dup here
       this.batch = new ArrayList<>();
       for (DataChangeEvent event : dbzRecords) {

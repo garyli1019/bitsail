@@ -28,9 +28,10 @@
     <artifactId>connector-cdc-mysql</artifactId>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <debezium.version>2.1.1.Final</debezium.version>
+        <maridb.version>3.0.8</maridb.version>
     </properties>
 
     <dependencies>
@@ -59,6 +60,12 @@
             <version>1.2.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>${maridb.version}</version>
+        </dependency>
+
         <!-- dependencies for test -->
         <dependency>
             <groupId>com.bytedance.bitsail</groupId>
@@ -66,6 +73,7 @@
             <version>${revision}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.bytedance.bitsail</groupId>
             <artifactId>bitsail-connector-print</artifactId>

@@ -17,19 +17,32 @@
 package com.bytedance.bitsail.connector.mysql.source.offset;
 
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.Properties;
 
-@Builder
-@Getter
+@Data
 public class BinlogOffset implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private final OffsetType offsetType;
 
   private final Properties props;
+
+  public BinlogOffset(OffsetType offsetType, Properties props) {
+    this.offsetType = offsetType;
+    this.props = props;
+  }
+
+  public static BinlogOffset earliest() {
+    return new BinlogOffset(OffsetType.EARLIEST, new Properties());
+  }
+
+  public static BinlogOffset boundless() {
+    return new BinlogOffset(OffsetType.BOUNDLESS, new Properties());
+  }
 
   public enum OffsetType {
     // earliest point in binlog
