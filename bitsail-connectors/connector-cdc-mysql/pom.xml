@@ -30,7 +30,7 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <debezium.version>2.1.1.Final</debezium.version>
+        <debezium.version>1.6.4.Final</debezium.version>
         <maridb.version>3.0.8</maridb.version>
     </properties>
 
