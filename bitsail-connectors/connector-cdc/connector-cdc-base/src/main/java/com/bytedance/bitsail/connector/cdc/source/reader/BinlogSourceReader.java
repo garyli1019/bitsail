@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 public abstract class BinlogSourceReader implements SourceReader<Row, BinlogSplit> {
@@ -41,7 +42,7 @@ public abstract class BinlogSourceReader implements SourceReader<Row, BinlogSpli
 
   private final Queue<BinlogSplit> remainSplits;
 
-  private final BinlogSplitReader reader;
+  private final BinlogSplitReader<Row> reader;
 
   public BinlogSourceReader(BitSailConfiguration jobConf, SourceReader.Context readerContext) {
     this.jobConf = jobConf;
@@ -97,6 +98,8 @@ public abstract class BinlogSourceReader implements SourceReader<Row, BinlogSpli
 
   @Override
   public List<BinlogSplit> snapshotState(long checkpointId) {
+    // store the latest offset
+    Map<String, String> readerOffset = this.reader.getOffset();
     return null;
   }
 
